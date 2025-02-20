@@ -57,9 +57,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMessage(message: Omit<Message, "id" | "createdAt">): Promise<Message> {
+    const { sequenceId, ...messageWithoutSequence } = message;
     const [newMessage] = await db
       .insert(messages)
-      .values(message)
+      .values(messageWithoutSequence)
       .returning();
     return newMessage;
   }
