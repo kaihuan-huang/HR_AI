@@ -44,13 +44,17 @@ export class DatabaseStorage implements IStorage {
 
   async getMessages(userId: number): Promise<Message[]> {
     return await db
-      .select()
+      .select({
+        id: messages.id,
+        userId: messages.userId,
+        content: messages.content,
+        richContent: messages.richContent,
+        role: messages.role,
+        createdAt: messages.createdAt
+      })
       .from(messages)
       .where(eq(messages.userId, userId))
       .orderBy(messages.createdAt);
-
-    // Note: If you need sequence_id functionality, you'll need to create a migration
-    // to add the sequence_id column to your messages table
   }
 
   async createMessage(message: Omit<Message, "id" | "createdAt">): Promise<Message> {
