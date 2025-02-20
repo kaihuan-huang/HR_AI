@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Edit2, CheckCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface Step {
   id: number;
@@ -62,23 +63,25 @@ export default function Workspace({ content, onEdit }: WorkspaceProps) {
   };
 
   return (
-    <Card className="h-full border-none shadow-none bg-slate-50/30">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <span className="text-primary">Sequence</span>
-          {steps.length > 0 && (
-            <span className="text-xs text-muted-foreground font-normal">
-              {steps.length} steps
-            </span>
-          )}
+    <Card className="h-full bg-gradient-to-b from-white to-slate-50/80 border-none shadow-none">
+      <CardHeader className="pb-4 border-b">
+        <CardTitle className="text-lg font-semibold flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-primary">Sequence</span>
+            {steps.length > 0 && (
+              <Badge variant="secondary" className="h-5 px-2 text-xs font-normal">
+                {steps.length} steps
+              </Badge>
+            )}
+          </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4">
         <ScrollArea className="h-[calc(100vh-12rem)]">
           <AnimatePresence>
             {steps.length > 0 ? (
               <motion.div
-                className="space-y-3"
+                className="space-y-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.2 }}
@@ -95,11 +98,13 @@ export default function Workspace({ content, onEdit }: WorkspaceProps) {
                     onMouseLeave={() => setHoveredStep(null)}
                   >
                     <div className={`
-                      p-4 rounded-lg transition-all duration-200
-                      ${editingStep === step.id ? 'bg-white shadow-lg' : 'bg-white/50 hover:bg-white hover:shadow-md'}
+                      relative p-4 rounded-lg transition-all duration-200
+                      ${editingStep === step.id 
+                        ? 'bg-white shadow-lg ring-2 ring-primary/10' 
+                        : 'bg-white hover:shadow-md hover:ring-1 hover:ring-primary/5'}
                     `}>
                       {editingStep === step.id ? (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           <Input
                             defaultValue={step.content}
                             onBlur={(e) => handleStepEdit(step.id, e.target.value)}
@@ -108,9 +113,15 @@ export default function Workspace({ content, onEdit }: WorkspaceProps) {
                             className="border-primary/20 focus:border-primary"
                             placeholder="Enter step description..."
                           />
-                          <div className="flex gap-2 text-xs text-muted-foreground">
-                            <span>Press Enter to save</span>
-                            <span>Esc to cancel</span>
+                          <div className="flex gap-4 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <kbd className="px-2 py-1 rounded bg-slate-100">Enter</kbd>
+                              to save
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <kbd className="px-2 py-1 rounded bg-slate-100">Esc</kbd>
+                              to cancel
+                            </span>
                           </div>
                         </div>
                       ) : (
@@ -118,21 +129,21 @@ export default function Workspace({ content, onEdit }: WorkspaceProps) {
                           className="cursor-pointer rounded transition-all"
                           onClick={() => setEditingStep(step.id)}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium text-sm text-muted-foreground mb-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <Badge variant="outline" className="h-5 px-2 text-xs font-normal">
                               Step {step.id}
-                            </div>
+                            </Badge>
                             {hoveredStep === step.id && (
-                              <motion.div
+                              <motion.button
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 className="text-primary/60 hover:text-primary"
                               >
                                 <Edit2 className="h-4 w-4" />
-                              </motion.div>
+                              </motion.button>
                             )}
                           </div>
-                          <div className="text-sm leading-relaxed">{step.content}</div>
+                          <div className="text-sm leading-relaxed text-slate-700">{step.content}</div>
                         </div>
                       )}
                     </div>
