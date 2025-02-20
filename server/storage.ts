@@ -44,13 +44,7 @@ export class DatabaseStorage implements IStorage {
 
   async getMessages(userId: number): Promise<Message[]> {
     return await db
-      .select({
-        id: messages.id,
-        userId: messages.userId,
-        content: messages.content,
-        role: messages.role,
-        createdAt: messages.createdAt
-      })
+      .select()
       .from(messages)
       .where(eq(messages.userId, userId))
       .orderBy(messages.createdAt);
@@ -62,8 +56,7 @@ export class DatabaseStorage implements IStorage {
       .values({
         userId: message.userId,
         content: message.content,
-        role: message.role,
-        ...(message.sequenceId && { sequenceId: message.sequenceId })
+        role: message.role
       })
       .returning();
     return newMessage;

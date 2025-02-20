@@ -4,30 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Edit2, CheckCircle, Variable } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Edit2, CheckCircle } from "lucide-react";
 
 interface Step {
   id: number;
   content: string;
-  richContent?: {
-    blocks: Array<{
-      type: string;
-      text: string;
-      marks?: Array<{ type: string; attrs?: Record<string, any> }>;
-    }>;
-  };
-}
-
-interface Variable {
-  key: string;
-  value: string;
 }
 
 interface WorkspaceProps {
@@ -39,8 +20,6 @@ export default function Workspace({ content, onEdit }: WorkspaceProps) {
   const [steps, setSteps] = useState<Step[]>([]);
   const [editingStep, setEditingStep] = useState<number | null>(null);
   const [hoveredStep, setHoveredStep] = useState<number | null>(null);
-  const [variables, setVariables] = useState<Variable[]>([]);
-  const [isVariablesOpen, setIsVariablesOpen] = useState(false);
 
   useEffect(() => {
     if (content) {
@@ -56,15 +35,6 @@ export default function Workspace({ content, onEdit }: WorkspaceProps) {
       }
     }
   }, [content]);
-
-  const replaceVariables = (text: string) => {
-    let result = text;
-    variables.forEach(({ key, value }) => {
-      const placeholder = `{{${key}}}`;
-      result = result.replace(new RegExp(placeholder, 'g'), value);
-    });
-    return result;
-  };
 
   const handleStepEdit = (stepId: number, newContent: string) => {
     if (!newContent.trim()) return;
@@ -82,16 +52,6 @@ export default function Workspace({ content, onEdit }: WorkspaceProps) {
     }
   };
 
-  const handleAddVariable = () => {
-    setVariables([...variables, { key: `var${variables.length + 1}`, value: '' }]);
-  };
-
-  const handleVariableChange = (index: number, key: string, value: string) => {
-    const newVariables = [...variables];
-    newVariables[index] = { key, value };
-    setVariables(newVariables);
-  };
-
   const handleKeyPress = (e: React.KeyboardEvent, stepId: number, content: string) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -104,53 +64,13 @@ export default function Workspace({ content, onEdit }: WorkspaceProps) {
   return (
     <Card className="h-full border-none shadow-none bg-slate-50/30">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-semibold flex items-center justify-between">
-          <span className="text-primary flex items-center gap-2">
-            Sequence
-            {steps.length > 0 && (
-              <span className="text-xs text-muted-foreground font-normal">
-                {steps.length} steps
-              </span>
-            )}
-          </span>
-          <Sheet open={isVariablesOpen} onOpenChange={setIsVariablesOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Variable className="h-4 w-4" />
-                Variables
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Custom Variables</SheetTitle>
-              </SheetHeader>
-              <div className="mt-4 space-y-4">
-                {variables.map((variable, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      placeholder="Variable name"
-                      value={variable.key}
-                      onChange={(e) =>
-                        handleVariableChange(index, e.target.value, variable.value)
-                      }
-                      className="flex-1"
-                    />
-                    <Input
-                      placeholder="Value"
-                      value={variable.value}
-                      onChange={(e) =>
-                        handleVariableChange(index, variable.key, e.target.value)
-                      }
-                      className="flex-1"
-                    />
-                  </div>
-                ))}
-                <Button onClick={handleAddVariable} className="w-full">
-                  Add Variable
-                </Button>
-              </div>
-            </SheetContent>
-          </Sheet>
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <span className="text-primary">Sequence</span>
+          {steps.length > 0 && (
+            <span className="text-xs text-muted-foreground font-normal">
+              {steps.length} steps
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -212,9 +132,7 @@ export default function Workspace({ content, onEdit }: WorkspaceProps) {
                               </motion.div>
                             )}
                           </div>
-                          <div className="text-sm leading-relaxed">
-                            {replaceVariables(step.content)}
-                          </div>
+                          <div className="text-sm leading-relaxed">{step.content}</div>
                         </div>
                       )}
                     </div>
