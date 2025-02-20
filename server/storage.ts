@@ -1,9 +1,12 @@
 import session from "express-session";
-import createMemoryStore from "memorystore";
 import { User, Message, InsertUser } from "@shared/schema";
-import { nanoid } from "nanoid";
+import { users, messages } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -11,64 +14,49 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getMessages(userId: number): Promise<Message[]>;
   createMessage(message: Omit<Message, "id" | "createdAt">): Promise<Message>;
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private messages: Map<number, Message[]>;
-  private currentId: number;
-  sessionStore: session.SessionStore;
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.messages = new Map();
-    this.currentId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = { 
-      ...insertUser, 
-      id, 
-      createdAt: new Date() 
-    };
-    this.users.set(id, user);
-    this.messages.set(id, []);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async getMessages(userId: number): Promise<Message[]> {
-    return this.messages.get(userId) || [];
+    return await db
+      .select()
+      .from(messages)
+      .where(eq(messages.userId, userId))
+      .orderBy(messages.createdAt);
   }
 
   async createMessage(message: Omit<Message, "id" | "createdAt">): Promise<Message> {
-    const id = nanoid();
-    const newMessage: Message = {
-      ...message,
-      id,
-      createdAt: new Date()
-    };
-    
-    const userMessages = this.messages.get(message.userId) || [];
-    userMessages.push(newMessage);
-    this.messages.set(message.userId, userMessages);
-    
+    const [newMessage] = await db
+      .insert(messages)
+      .values(message)
+      .returning();
     return newMessage;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

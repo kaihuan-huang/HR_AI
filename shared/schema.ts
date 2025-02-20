@@ -1,6 +1,7 @@
 import { pgTable, text, serial, timestamp, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -9,6 +10,10 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow()
 });
 
+export const usersRelations = relations(users, ({ many }) => ({
+  messages: many(messages)
+}));
+
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   userId: serial("user_id").references(() => users.id),
@@ -16,6 +21,13 @@ export const messages = pgTable("messages", {
   role: text("role", { enum: ["user", "assistant"] }).notNull(),
   createdAt: timestamp("created_at").defaultNow()
 });
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  user: one(users, {
+    fields: [messages.userId],
+    references: [users.id],
+  }),
+}));
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
