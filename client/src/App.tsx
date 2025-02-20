@@ -1,32 +1,26 @@
-import { Route, Switch } from "wouter";
+
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
-import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/hooks/use-auth";
-import NotFound from "@/pages/not-found";
-import AuthPage from "@/pages/auth-page";
-import ChatPage from "@/pages/chat-page";
-import { ProtectedRoute } from "./lib/protected-route";
+import { AuthProvider } from "./hooks/use-auth";
+import { Toaster } from "./components/ui/toaster";
+import ChatPage from "./pages/chat-page";
+import AuthPage from "./pages/auth-page";
+import NotFound from "./pages/not-found";
 
-function Router() {
-  return (
-    <Switch>
-      <ProtectedRoute path="/" component={ChatPage} />
-      <Route path="/auth" component={AuthPage} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
-
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<ChatPage />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   );
 }
-
-export default App;
