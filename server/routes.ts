@@ -5,68 +5,64 @@ import { storage } from "./storage";
 import OpenAI from "openai";
 import { insertMessageSchema } from "@shared/schema";
 
-// Initialize OpenAI client
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-// Initialize Groq client as a backup
+// Initialize Groq as primary and OpenAI as backup
 const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
   apiKey: process.env.GROQ_API_KEY
 });
 
-const MODEL = "gpt-4o";
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 const GROQ_MODEL = "mixtral-8x7b-32768";
+const OPENAI_MODEL = "gpt-4o";
 
 async function getAIResponse(messages: any[], context?: { workspace?: string }) {
   const basePrompt = context?.workspace 
-    ? `You are a helpful AI assistant working on improving a sequence of steps. Your goal is to help refine and enhance the sequence based on user feedback.
+    ? `You are an AI assistant helping improve a sequence of steps. Review the current sequence and user feedback to suggest improvements.
 
 Current sequence:
 ${context.workspace}
 
-When editing:
-1. Maintain the step format and numbering
-2. Keep responses clear and concise
-3. Ask follow-up questions if needed to better understand the user's needs
-4. Suggest specific improvements while explaining your reasoning`
-    : `You are a helpful AI assistant creating a sequence of steps based on user input. Your goal is to gather information and create a well-structured sequence.
+Guidelines:
+1. Keep the step numbering format (Step X:)
+2. Make specific suggestions for improvements
+3. Explain your reasoning briefly
+4. Ask clarifying questions if needed`
 
-When interacting:
-1. Ask follow-up questions to understand:
-   - The goal of the sequence
-   - The target audience
-   - Desired number of steps
-   - Key points to include
+    : `You are an AI assistant helping create a sequence of steps. Guide the user through creating an effective sequence.
+
+Guidelines:
+1. If this is a new conversation, ask about:
+   - The goal/purpose of the sequence
+   - Target audience
+   - Desired tone and style
+   - Preferred number of steps
 2. Once you have enough information, generate a sequence using "Step X:" format
-3. Keep each step clear and actionable
-4. Maintain a conversational tone while being professional`;
+3. After generating, ask if they'd like any adjustments
+4. Keep responses clear and actionful`;
 
-  const systemMessage = {
-    role: "system",
-    content: basePrompt
-  };
-
+  const systemMessage = { role: "system", content: basePrompt };
   const messageList = [systemMessage, ...messages];
 
   try {
-    // Try OpenAI first
-    const response = await openai.chat.completions.create({
-      model: MODEL,
+    // Try Groq first
+    const response = await groq.chat.completions.create({
+      model: GROQ_MODEL,
       messages: messageList,
     });
     return response.choices[0].message.content;
-  } catch (error) {
-    console.error("OpenAI error:", error);
+  } catch (groqError) {
+    console.error("Groq error:", groqError);
     try {
-      // Fallback to Groq if OpenAI fails
-      const response = await groq.chat.completions.create({
-        model: GROQ_MODEL,
+      // Fallback to OpenAI
+      const response = await openai.chat.completions.create({
+        model: OPENAI_MODEL,
         messages: messageList,
       });
       return response.choices[0].message.content;
-    } catch (groqError) {
-      console.error("Groq error:", groqError);
-      throw new Error("Both AI services failed to respond");
+    } catch (openaiError) {
+      console.error("OpenAI error:", openaiError);
+      throw new Error("AI services failed to respond");
     }
   }
 }
@@ -95,7 +91,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     try {
-      // Get previous messages for context
+      // Get last 5 messages for context
       const messages = await storage.getMessages(req.user.id);
       const recentMessages = messages.slice(-5).map(msg => ({
         role: msg.role,
@@ -109,14 +105,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const aiMessage = await storage.createMessage({
         userId: req.user.id,
-        content: aiResponse || "I'm sorry, I couldn't generate a response.",
+        content: aiResponse || "I apologize, but I couldn't generate a response at this time. Please try again.",
         role: "assistant"
       });
 
       res.json({ userMessage, aiMessage });
     } catch (error) {
       console.error("AI service error:", error);
-      res.status(500).json({ message: "Failed to get AI response" });
+      res.status(500).json({ 
+        message: "Failed to get AI response. Please try again in a moment."
+      });
     }
   });
 
