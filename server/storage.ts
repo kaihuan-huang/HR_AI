@@ -48,7 +48,6 @@ export class DatabaseStorage implements IStorage {
         id: messages.id,
         userId: messages.userId,
         content: messages.content,
-        richContent: messages.richContent,
         role: messages.role,
         createdAt: messages.createdAt
       })
