@@ -33,7 +33,6 @@ export default function MessageInput({ onResponse, workspaceContent }: MessageIn
     onSuccess: (data) => {
       setMessage("");
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
-      // Send AI's response to workspace
       if (data.aiMessage) {
         onResponse(data.aiMessage.content);
       }
