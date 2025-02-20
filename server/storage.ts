@@ -48,6 +48,9 @@ export class DatabaseStorage implements IStorage {
       .from(messages)
       .where(eq(messages.userId, userId))
       .orderBy(messages.createdAt);
+
+    // Note: If you need sequence_id functionality, you'll need to create a migration
+    // to add the sequence_id column to your messages table
   }
 
   async createMessage(message: Omit<Message, "id" | "createdAt">): Promise<Message> {
