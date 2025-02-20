@@ -18,32 +18,11 @@ const MODEL = "gpt-4o";
 const GROQ_MODEL = "mixtral-8x7b-32768";
 
 async function getAIResponse(messages: any[], context?: { workspace?: string }) {
-  const basePrompt = context?.workspace 
-    ? `You are a helpful AI assistant working on improving a sequence of steps. Your goal is to help refine and enhance the sequence based on user feedback.
-
-Current sequence:
-${context.workspace}
-
-When editing:
-1. Maintain the step format and numbering
-2. Keep responses clear and concise
-3. Ask follow-up questions if needed to better understand the user's needs
-4. Suggest specific improvements while explaining your reasoning`
-    : `You are a helpful AI assistant creating a sequence of steps based on user input. Your goal is to gather information and create a well-structured sequence.
-
-When interacting:
-1. Ask follow-up questions to understand:
-   - The goal of the sequence
-   - The target audience
-   - Desired number of steps
-   - Key points to include
-2. Once you have enough information, generate a sequence using "Step X:" format
-3. Keep each step clear and actionable
-4. Maintain a conversational tone while being professional`;
-
   const systemMessage = {
     role: "system",
-    content: basePrompt
+    content: context?.workspace
+      ? "You are a helpful AI assistant working on a sequence of steps. When editing, maintain the step format and numbering. Provide clear and concise responses."
+      : "You are a helpful AI assistant. Based on the user's input, gather necessary information by asking questions. Once you have enough information, generate a clear sequence of steps. Each step should start with 'Step X:' and be on a new line. Keep your responses focused on helping create and refine the sequence."
   };
 
   const messageList = [systemMessage, ...messages];

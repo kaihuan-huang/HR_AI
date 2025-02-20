@@ -33,9 +33,8 @@ export default function MessageInput({ onResponse, workspaceContent }: MessageIn
     onSuccess: (data) => {
       setMessage("");
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
-
-      // Only update workspace if the response contains a sequence
-      if (data.aiMessage && data.aiMessage.content.includes("Step 1:")) {
+      // Send AI's response to workspace
+      if (data.aiMessage) {
         onResponse(data.aiMessage.content);
       }
     },
