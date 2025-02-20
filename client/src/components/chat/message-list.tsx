@@ -24,16 +24,18 @@ export default function MessageList() {
     );
   }
 
-  // Only show user messages
-  const userMessages = messages.filter(message => message.role === "user");
-
   return (
     <ScrollArea ref={scrollRef} className="flex-1 p-4">
       <div className="space-y-4">
-        {userMessages.map((message) => (
+        {messages.map((message) => (
           <div
             key={message.id}
-            className="flex w-max max-w-[80%] ml-auto rounded-lg px-4 py-2 bg-primary text-primary-foreground"
+            className={cn(
+              "flex w-max max-w-[80%] rounded-lg px-4 py-2",
+              message.role === "user"
+                ? "ml-auto bg-primary text-primary-foreground"
+                : "mr-auto bg-muted"
+            )}
           >
             <p className="whitespace-pre-wrap">{message.content}</p>
           </div>
