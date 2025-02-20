@@ -63,7 +63,7 @@ export class DatabaseStorage implements IStorage {
         userId: message.userId,
         content: message.content,
         role: message.role,
-        sequenceId: message.sequenceId ?? 1 // Provide a default value if not specified
+        ...(message.sequenceId && { sequenceId: message.sequenceId })
       })
       .returning();
     return newMessage;

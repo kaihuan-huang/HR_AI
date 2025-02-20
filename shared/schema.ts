@@ -26,7 +26,7 @@ export const sequences = pgTable("sequences", {
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   userId: serial("user_id").references(() => users.id),
-  sequenceId: serial("sequence_id"),
+  sequenceId: serial("sequence_id").references(() => sequences.id),
   content: text("content").notNull(),
   richContent: json("rich_content").$type<{
     blocks: Array<{
