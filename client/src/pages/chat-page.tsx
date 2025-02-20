@@ -2,10 +2,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import MessageList from "@/components/chat/message-list";
 import MessageInput from "@/components/chat/message-input";
+import Workspace from "@/components/chat/workspace";
 import { LogOut } from "lucide-react";
+import { useState } from "react";
 
 export default function ChatPage() {
   const { user, logoutMutation } = useAuth();
+  const [workspaceContent, setWorkspaceContent] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -30,14 +33,11 @@ export default function ChatPage() {
       <div className="flex-1 grid grid-cols-1 md:grid-cols-[1fr,400px] overflow-hidden">
         <main className="flex flex-col h-full border-r">
           <MessageList />
-          <MessageInput />
+          <MessageInput onResponse={(content) => setWorkspaceContent(content)} />
         </main>
-        
-        <aside className="hidden md:block p-6 bg-muted/50">
-          <h2 className="text-lg font-semibold mb-4">Workspace</h2>
-          <p className="text-muted-foreground">
-            This area can be used for additional context, settings, or other features.
-          </p>
+
+        <aside className="hidden md:block p-6">
+          <Workspace content={workspaceContent} />
         </aside>
       </div>
     </div>

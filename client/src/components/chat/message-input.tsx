@@ -6,7 +6,11 @@ import { Send } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-export default function MessageInput() {
+interface MessageInputProps {
+  onResponse: (content: string) => void;
+}
+
+export default function MessageInput({ onResponse }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -16,9 +20,13 @@ export default function MessageInput() {
       const res = await apiRequest("POST", "/api/messages", { content, role: "user" });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setMessage("");
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      // Send AI's response to workspace
+      if (data.aiMessage) {
+        onResponse(data.aiMessage.content);
+      }
     },
     onError: (error: Error) => {
       toast({
