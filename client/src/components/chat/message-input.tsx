@@ -12,6 +12,17 @@ interface MessageInputProps {
   workspaceContent?: string | null;
 }
 
+const TypingIndicator = () => (
+  <motion.div
+    className="absolute left-4 -top-6 bg-background/95 px-3 py-1 rounded-full text-xs text-muted-foreground shadow-sm border"
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: 10 }}
+  >
+    AI is typing...
+  </motion.div>
+);
+
 export default function MessageInput({ onResponse, workspaceContent }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const queryClient = useQueryClient();
@@ -63,11 +74,12 @@ export default function MessageInput({ onResponse, workspaceContent }: MessageIn
   return (
     <motion.form
       onSubmit={handleSubmit}
-      className="border-t p-4"
+      className="border-t p-4 relative"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
+      {sendMessage.isPending && <TypingIndicator />}
       <div className="flex gap-2">
         <div className="flex-1 relative">
           <Textarea
