@@ -8,16 +8,26 @@ import { useToast } from "@/hooks/use-toast";
 
 interface MessageInputProps {
   onResponse: (content: string) => void;
+  workspaceContent?: string | null;
 }
 
-export default function MessageInput({ onResponse }: MessageInputProps) {
+export default function MessageInput({ onResponse, workspaceContent }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const sendMessage = useMutation({
     mutationFn: async (content: string) => {
-      const res = await apiRequest("POST", "/api/messages", { content, role: "user" });
+      // Include workspace content in context if it exists
+      const payload = {
+        content,
+        role: "user",
+        context: workspaceContent ? {
+          workspace: workspaceContent
+        } : undefined
+      };
+
+      const res = await apiRequest("POST", "/api/messages", payload);
       return res.json();
     },
     onSuccess: (data) => {
@@ -50,7 +60,11 @@ export default function MessageInput({ onResponse }: MessageInputProps) {
         <Textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type your message..."
+          placeholder={
+            workspaceContent
+              ? "Give feedback or suggest edits to the sequence..."
+              : "Type your message..."
+          }
           className="min-h-[80px]"
         />
         <Button type="submit" size="icon" disabled={sendMessage.isPending}>

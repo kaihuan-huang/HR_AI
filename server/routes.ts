@@ -9,21 +9,29 @@ import { insertMessageSchema } from "@shared/schema";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Initialize Groq client as a backup
-const groq = new OpenAI({ 
+const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
-  apiKey: process.env.GROQ_API_KEY 
+  apiKey: process.env.GROQ_API_KEY
 });
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const MODEL = "gpt-4o";
-const GROQ_MODEL = "mixtral-8x7b-32768"; // Groq's most capable model
+const GROQ_MODEL = "mixtral-8x7b-32768";
 
-async function getAIResponse(messages: any[]) {
+async function getAIResponse(messages: any[], context?: { workspace?: string }) {
+  const systemMessage = {
+    role: "system",
+    content: context?.workspace
+      ? "You are a helpful AI assistant working on a sequence of steps. When editing, maintain the step format and numbering. Provide clear and concise responses."
+      : "You are a helpful AI assistant. Based on the user's input, generate a clear sequence of steps when appropriate. Each step should start with 'Step X:' and be on a new line."
+  };
+
+  const messageList = [systemMessage, ...messages];
+
   try {
     // Try OpenAI first
     const response = await openai.chat.completions.create({
       model: MODEL,
-      messages,
+      messages: messageList,
     });
     return response.choices[0].message.content;
   } catch (error) {
@@ -32,7 +40,7 @@ async function getAIResponse(messages: any[]) {
       // Fallback to Groq if OpenAI fails
       const response = await groq.chat.completions.create({
         model: GROQ_MODEL,
-        messages,
+        messages: messageList,
       });
       return response.choices[0].message.content;
     } catch (groqError) {
@@ -66,16 +74,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     try {
-      const aiResponse = await getAIResponse([
-        { 
-          role: "system", 
-          content: "You are a helpful AI assistant. Provide clear and concise responses." 
-        },
-        { 
-          role: "user", 
-          content: result.data.content 
-        }
-      ]);
+      const aiResponse = await getAIResponse(
+        [{ role: "user", content: result.data.content }],
+        req.body.context
+      );
 
       const aiMessage = await storage.createMessage({
         userId: req.user.id,

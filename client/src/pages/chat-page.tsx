@@ -10,6 +10,10 @@ export default function ChatPage() {
   const { user, logoutMutation } = useAuth();
   const [workspaceContent, setWorkspaceContent] = useState<string | null>(null);
 
+  const handleWorkspaceEdit = (content: string) => {
+    setWorkspaceContent(content);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b p-4 flex justify-between items-center">
@@ -33,11 +37,17 @@ export default function ChatPage() {
       <div className="flex-1 grid grid-cols-1 md:grid-cols-[1fr,400px] overflow-hidden">
         <main className="flex flex-col h-full border-r">
           <MessageList />
-          <MessageInput onResponse={(content) => setWorkspaceContent(content)} />
+          <MessageInput 
+            onResponse={(content) => setWorkspaceContent(content)}
+            workspaceContent={workspaceContent} 
+          />
         </main>
 
         <aside className="hidden md:block p-6">
-          <Workspace content={workspaceContent} />
+          <Workspace 
+            content={workspaceContent} 
+            onEdit={handleWorkspaceEdit}
+          />
         </aside>
       </div>
     </div>
