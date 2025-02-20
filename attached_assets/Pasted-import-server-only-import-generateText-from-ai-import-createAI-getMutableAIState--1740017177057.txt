@@ -1,0 +1,176 @@
+import 'server-only';
+
+import { generateText } from 'ai';
+import {
+  createAI,
+  getMutableAIState,
+  streamUI,
+  createStreamableValue
+} from 'ai/rsc';
+import { createOpenAI } from '@ai-sdk/openai';
+
+import { BotCard, BotMessage } from '@/components/hr/message';
+import { z } from 'zod';
+import { nanoid } from '@/lib/utils';
+import { SpinnerMessage } from '@/components/hr/message';
+import { Message } from '@/lib/types';
+import { OutreachEditor } from '@/components/hr/outreach-editor';
+import { CandidateProfile } from '@/components/hr/candidate-profile';
+import { OutreachSequences } from '@/components/hr/outreach-sequences';
+import { toast } from 'sonner';
+
+export type AIState = {
+  chatId: string;
+  messages: Message[];
+};
+
+export type UIState = {
+  id: string;
+  display: React.ReactNode;
+}[];
+
+const MODEL = 'llama3-70b-8192';
+const TOOL_MODEL = 'llama3-70b-8192';
+const OPENAI_API_KEY_ENV = process.env.OPENAI_API_KEY;
+
+async function generateOutreach(
+  candidate: string,
+  role: string,
+  aiState: any
+): Promise<string> {
+  const openai = createOpenAI({
+    apiKey: OPENAI_API_KEY_ENV
+  });
+
+  const systemMessage = `
+You are an AI-powered HR assistant helping recruiters craft personalized outreach messages. 
+You will generate an outreach email based on the candidate's name and the role being recruited for.
+Ensure the tone is professional but engaging, and personalize the message based on the role provided.
+`;
+
+  try {
+    const response = await generateText({
+      model: openai(MODEL),
+      messages: [
+        { role: 'system', content: systemMessage },
+        ...aiState.get().messages.map((message: any) => ({
+          role: message.role,
+          content: message.content
+        }))
+      ]
+    });
+    return response.text || '';
+  } catch (err) {
+    return '';
+  }
+}
+
+async function submitUserMessage(content: string) {
+  'use server';
+
+  const aiState = getMutableAIState<typeof AI>();
+
+  aiState.update({
+    ...aiState.get(),
+    messages: [...aiState.get().messages, { id: nanoid(), role: 'user', content }]
+  });
+
+  let textStream;
+  let textNode;
+
+  try {
+    const openai = createOpenAI({
+      apiKey: OPENAI_API_KEY_ENV
+    });
+
+    const result = await streamUI({
+      model: openai(TOOL_MODEL),
+      initial: <SpinnerMessage />, 
+      maxRetries: 1,
+      system: `
+You are an AI HR assistant helping recruiters generate personalized outreach messages for candidates. 
+Extract candidate names and job roles from messages and suggest outreach sequences.
+      `,
+      messages: aiState.get().messages,
+      text: ({ content, done, delta }) => {
+        if (!textStream) {
+          textStream = createStreamableValue('');
+          textNode = <BotMessage content={textStream.value} />;
+        }
+
+        if (done) {
+          textStream.done();
+          aiState.done({
+            ...aiState.get(),
+            messages: [...aiState.get().messages, { id: nanoid(), role: 'assistant', content }]
+          });
+        } else {
+          textStream.update(delta);
+        }
+        return textNode;
+      },
+      tools: {
+        generateOutreachSequence: {
+          description: 'Generate a personalized outreach message for a candidate based on the role.',
+          parameters: z.object({
+            candidate: z.string().describe('The candidate’s full name.'),
+            role: z.string().describe('The job role being recruited for.')
+          }),
+          generate: async function* ({ candidate, role }) {
+            yield <BotCard><></></BotCard>;
+            
+            const toolCallId = nanoid();
+            aiState.done({
+              ...aiState.get(),
+              messages: [
+                ...aiState.get().messages,
+                {
+                  id: nanoid(),
+                  role: 'assistant',
+                  content: [{
+                    type: 'tool-call',
+                    toolName: 'generateOutreachSequence',
+                    toolCallId,
+                    args: { candidate, role }
+                  }]
+                },
+                {
+                  id: nanoid(),
+                  role: 'tool',
+                  content: [{
+                    type: 'tool-result',
+                    toolName: 'generateOutreachSequence',
+                    toolCallId,
+                    result: { candidate, role }
+                  }]
+                }
+              ]
+            });
+
+            const outreachMessage = await generateOutreach(candidate, role, aiState);
+
+            return (
+              <BotCard>
+                <OutreachEditor candidate={candidate} role={role} message={outreachMessage} />
+              </BotCard>
+            );
+          }
+        }
+      }
+    });
+    return { id: nanoid(), display: result.value };
+  } catch (err) {
+    return {
+      id: nanoid(),
+      display: <div className="border p-4 text-red-700 font-medium">Error: {err.message}</div>
+    };
+  }
+}
+
+export const AI = createAI<AIState, UIState>({
+  actions: {
+    submitUserMessage
+  },
+  initialUIState: [],
+  initialAIState: { chatId: nanoid(), messages: [] }
+});
