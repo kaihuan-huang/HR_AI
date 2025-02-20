@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -37,7 +37,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const insertMessageSchema = createInsertSchema(messages).pick({
   content: true,
   role: true,
-  sequenceId: true, //this line was missing in the edited code but present in original code. It is needed for the schema to be complete.
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
